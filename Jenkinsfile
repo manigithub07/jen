@@ -42,7 +42,7 @@ pipeline {
                     sh 'docker rm -f webapp-container || true'
 
                     // Run the new Docker container
-                    sh 'docker run -d -p 80:80 --name webapp-container $DOCKER_IMAGE'
+                    sh 'docker run -d -p 8081:80 --name webapp-container $DOCKER_IMAGE'
                 }
             }
         }
