@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = 'shmNi007/webapp'
+        DOCKER_IMAGE = 'shmani007/webapp'
         DOCKER_HUB_USERNAME = 'shmani007'
         DOCKER_HUB_PASSWORD = credentials('docker-hub-credentials-id')  // Create Jenkins credentials for Docker Hub
         GITHUB_REPO = 'https://github.com/manigithub07/jen.git'
