@@ -4,7 +4,7 @@ pipeline {
     environment {
         DOCKER_IMAGE = 'mynginx/webapp'
         DOCKER_HUB_USERNAME = 'shmani007'
-        DOCKER_HUB_PASSWORD = credentials('docker-hub-password-id')  // Create Jenkins credentials for Docker Hub
+        DOCKER_HUB_PASSWORD = credentials('docker-hub-credentials-id')  // Create Jenkins credentials for Docker Hub
         GITHUB_REPO = 'https://github.com/manigithub07/jen.git'
     }
 
