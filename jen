@@ -1,0 +1,78 @@
+
+
+One-time Jenkins setup
+
+bash
+sudo usermod -aG docker jenkins && sudo systemctl restart jenkins   # lets Jenkins run docker commands
+sudo cp -r ~/.kube /var/lib/jenkins/ && sudo chown -R jenkins: /var/lib/jenkins/.kube   # kubectl access for Jenkins
+
+With minikube, the certificate paths inside that kubeconfig must also be readable by the jenkins user. Copy ~/.minikube too and fix the paths. Jenkins also needs Git, a JDK and Docker installed.
+
+Files in the GitHub repo
+
+Hello.java: prints “Hello World”.
+
+
+Dockerfile:
+dockerfile
+FROM eclipse-temurin:17-jdk
+WORKDIR /app
+COPY Hello.java .
+RUN javac Hello.java
+CMD ["java", "Hello"]
+
+k8s.yaml:
+yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: hello-java}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: hello-java}}
+  template:
+    metadata: {labels: {app: hello-java}}
+    spec:
+      containers:
+      - name: hello-java
+        image: <dockerhub_user>/hello-java:v1
+        command: ["sh","-c","java Hello && sleep 3600"]   # keeps the pod Running after it prints
+---
+apiVersion: v1
+kind: Service
+metadata: {name: hello-java-svc}
+spec:
+  selector: {app: hello-java}
+  ports: [{port: 80, targetPort: 8080}]
+
+Credentials (Q3): Manage Jenkins → Credentials → Global → Add Credentials → “Username with password”. Enter your Docker Hub username and password (or token), with ID dockerhub-creds.
+
+Jenkinsfile. Create it via New Item → Pipeline → paste the script. For Q1, keep only the first three stages, then add the others as the questions progress.
+
+groovy
+pipeline {
+  agent any
+  environment { IMAGE = "<dockerhub_user>/hello-java" }
+  stages {
+    stage('Pull')    { steps { git branch: 'main', url: 'https://github.com/<user>/<repo>.git' } }   // Q1
+    stage('Compile') { steps { sh 'javac Hello.java' } }
+    stage('Run')     { steps { sh 'java Hello' } }
+    stage('Docker Build') { steps { sh 'docker build -t $IMAGE:v1 .' } }       // Q2
+    stage('Docker Run')   { steps { sh 'docker run --rm $IMAGE:v1' } }
+    stage('Push') {                                                            // Q3
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'U', passwordVariable: 'P')]) {
+          sh 'echo $P | docker login -u $U --password-stdin'   // login without exposing the password
+          sh 'docker push $IMAGE:v1'
+        }
+      }
+    }
+    stage('Deploy') {                                                          // Q4
+      steps {
+        sh 'kubectl apply -f k8s.yaml'      // the cluster pulls the image from Docker Hub
+        sh 'kubectl get pods'
+      }
+    }
+  }
+}
+
+Click Build Now, open the build, and check Console Output. For DockerHub, open the repo page. For Kubernetes, kubectl get pods should show Running.
